@@ -1,19 +1,17 @@
 from items import *
-
-room_reception = {
-    "name": "Reception",
+from weapons import *
+from enemies import *
+room_start = {
+    "name": "Start",
 
     "description":
-    """You are in a maze of twisty little passages, all alike.
-Next to you is the School of Computer Science and
-Informatics reception. The receptionist, Matt Strangis,
-seems to be playing an old school text-based adventure
-game on his computer. There are corridors leading to the
-south and east. The exit is to the west.""",
+    """You wake up after a heavy night of drinking and realise that you have failed CM1101 module because you forgot to submit the final version of your group project""",
 
     "exits": {"south": "Admins", "east": "Tutor", "west": "Parking"},
 
-    "items": [item_biscuits, item_handbook]
+    "items": [item_biscuits, item_handbook],
+    "weapons": [weapon_aspirin],
+    "enemies": [enemy_hangover]
 }
 
 room_admins = {
@@ -73,7 +71,7 @@ Queen's Buildings.""",
 
 
 rooms = {
-    "Reception": room_reception,
+    "Start": room_start,
     "Admins": room_admins,
     "Tutor": room_tutor,
     "Parking": room_parking,

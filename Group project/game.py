@@ -4,16 +4,36 @@ from map import rooms
 from player import *
 from items import *
 from gameparser import *
+from weapons import *
 from enemies import *
-
+from game_ascii_art import *
+import random
 def is_winning():
     i = 0
-    for a in rooms["Reception"]["items"]:
+    for a in rooms["Start"]["items"]:
         i = i+1
     if i==6:
         return True
     else:
         return False
+def print_introduction_to_game():
+    print(game_title_in_ascii)
+    print("\n")
+    print("WELCOME TO DORK!!!")
+    print("Dork is a text-based adventure game with turn based combat and is not in any way related to Zork")
+    print("You must battle monsters and NPCs to earn loot so eventually you can defeat the final boss 'Kirril' who is not in any way related to Kirill")
+    print("You start off with skillpoints which can be invested to make a unique build. Different builds may be appropriate for different enemies. You can retrain to reallocate them")
+    print("Extra challange is to try to find a way to break the game (this will only be a challange when the game is finnished because currently there are many bugs")
+    print("GOOD LUCK!")
+def display_information(enemy_id, turn):
+    print ("This is turn " + str(turn))
+    print ("The enemy health is: " + str(enemy_all[enemy_id]["health"]))
+    print ("My health is: " + str(stats["health"]))
+    print ("You can:")
+    for spell in spells:
+        print ("CAST " + spell + " to do " + str(spells[spell]) + " damage!")
+    for weapon in player_weapons:
+        print("ATTACK " + weapon["id"] + " to attack with " + weapon["id"] + " to deal " + str(weapon["damage"]) + " damage!")
 def list_of_items(items):
     """This function takes a list of items (see items.py for the definition) and
     returns a comma-separated list of item names (as a string). For example:
@@ -67,7 +87,10 @@ def print_room_items(room):
     if room["items"] == []:
     	return 
     print ("There is " + list_of_items(room["items"]) + " here.\n")
-
+def print_room_weapons(room):
+    if room["weapons"] == []:
+    	return 
+    print ("There is " + list_of_items(room["weapons"]) + " here.\n")
 
 def print_inventory_items(items):
     """This function takes a list of inventory items and displays it nicely, in a
@@ -170,7 +193,7 @@ def print_exit(direction, leads_to):
     print("GO " + direction.upper() + " to " + leads_to + ".")
 
 
-def print_menu(exits, room_items, inv_items):
+def print_menu(exits, room_items, inv_items, room_weapons, player_weapons, room_enemies):
     """This function displays the menu of available actions to the player. The
     argument exits is a dictionary of exits as exemplified in map.py. The
     arguments room_items and inv_items are the items lying around in the room
@@ -209,11 +232,12 @@ def print_menu(exits, room_items, inv_items):
     	print("TAKE " + item["id"] + " to take " + item["name"])
     for item in inv_items:
     	print("DROP " + item["id"] + " to drop " + item["name"])
-    	
-    #
-    # COMPLETE ME!
-    #
-    
+    for weapon in room_weapons:
+        print("EQUIP " + weapon["id"] + " to equip " + weapon["id"])
+    for weapon in player_weapons:
+        print("UNEQUIP " + weapon["id"] + " to drop " + weapon["id"])
+    for enemy in room_enemies:
+        print("BATTLE " + enemy["id"] + " to battle " + enemy["id"])
     print("What do you want to do?")
 
 
@@ -282,30 +306,70 @@ def execute_drop(item_id):
     i = 0
     actual_item = items_all[item_id]
     for element in inventory:
-    	#print (element)
-    	#print (item_id)
         if actual_item == element:
             current_room["items"].append(element)
             inventory.pop(i)
         i = i + 1
-        
+def execute_unequip(weapon_id):
+    """This function takes a weapon id as an argument and moves the item from player's inventory to the room weapons
+    """
+    i = 0
+    actual_item = weapon_all[weapon_id]
+    for element in player_weapons:
+        if actual_item == element:
+            current_room["weapons"].append(element)
+            player_weapons.pop(i)
+        i = i + 1
+def execute_monster_drop(item, monster_id): #This function drops an item that a monster has
+    i = 0
+    for element in enemy_all[monster_id]["weapons"]:
+        if item == element:
+            current_room["weapons"].append(element)
+            enemy_all[monster_id]["weapons"].pop(i)
+        i = i + 1
+def execute_equip(item_id):
+    i = 0
+    total_sum_of_items = 0
+    actual_item = weapon_all[item_id]
+    for element in current_room["weapons"]:
+        if actual_item == element:
+            current_room["weapons"].pop(i)
+            player_weapons.append(element)
+            print("you equipped up "+ element["id"])
+            return
+        i = i + 1
+    print ("You cannot equip that")
+    return
 def execute_battle(enemy_id):
     """This function puts a player in battle. And takes enemy ID as an argument (E.g. troll)"
     """
     global player_in_battle
     player_in_battle = True
+    turn = 1
     print(enemy_all[enemy_id]["description"])
     while (stats["health"] > 0) and (enemy_all[enemy_id]["health"] > 0): #checks if both players still have positive hp
-        print (enemy_all[enemy_id]["health"])
-        for spell in spells:
-            print ("You can choose " + spell + " to do " + str(spells[spell]) + " damage!")
+        display_information(enemy_id, turn)
         user_input = input("> ")
         user_input = normalise_input(user_input)#get nice input from user
-        damage_player = execute_command(user_input)
-        enemy_all[enemy_id]["health"] = enemy_all[enemy_id]["health"] - damage_player
+        damage_player = execute_command(user_input) #calculate the damage the spell or attack will do
+        print (damage_player)
+        enemy_all[enemy_id]["health"] = enemy_all[enemy_id]["health"] - damage_player #Take damage away from the monster
+        
         #get enemy to do a move!
+        enemy_attack = random.randint(1,len(enemy_all[enemy_id]["ability_damage"]) - 1) #enemy chooses randomly which spell to use!
+        stats["health"] = stats["health"] - enemy_all[enemy_id]["ability_damage"]["ability"+str(enemy_attack)]
+        turn = turn + 1
+    if (stats["health"] > 0):#if player has won
+        print("You have defeated the " + enemy_all[enemy_id]["id"])
+        print("He has dropped the following loot: ")
+        for item in enemy_all[enemy_id]["weapons"]:
+            print(item["id"])
+            execute_monster_drop(item, enemy_id)
+        player_in_battle = False
 def calculate_damage(spell_name):#E.g. spell1
     return spells[spell_name]
+def calculate_attack_damage(weapon_id):
+    return weapon_all[weapon_id]["damage"]
 def execute_command(command):
     """This function takes a command (a list of words as returned by
     normalise_input) and, depending on the type of action (the first word of
@@ -334,23 +398,43 @@ def execute_command(command):
             execute_drop(command[1])
         else:
             print("Drop what?")
+            
     elif command[0] == "battle":
         if len(command) > 1:
             execute_battle(command[1])
         else:
             print("Battle who?")
-    
-    if (player_in_battle):
+            
+    elif command[0] == "equip":
+        if len(command) > 1:
+            execute_equip(command[1])
+        else:
+            print("equip what")
+            
+    elif command[0] == "unequip":
+        if len(command) > 1:
+            execute_unequip(command[1])
+        else:
+            print("unequip what")
+            
+    elif (player_in_battle): #PROCESS ALL COMMANDS AVAIVABLE IN BATTLE
         if(command[0] == "cast"):
             if len(command) > 1:
                 return calculate_damage(command[1])
-        else:
-            print("which spell do you want to cast?")
+            else:
+                print("which spell do you want to cast?")
+        
+        elif(command[0] == "attack"):
+            if len(command) > 1:
+                return calculate_attack_damage(command[1])
+            else:
+                print("which weapon do you want to use for attacking?")
+            
     else:
         print("This makes no sense.")
 
 
-def menu(exits, room_items, inv_items):
+def menu(exits, room_items, inv_items, room_weapons, player_weapons, room_enemies):
     """This function, given a dictionary of possible exits from a room, and a list
     of items found in the room and carried by the player, prints the menu of
     actions using print_menu() function. It then prompts the player to type an
@@ -360,7 +444,7 @@ def menu(exits, room_items, inv_items):
     """
 
     # Display menu
-    print_menu(exits, room_items, inv_items)
+    print_menu(exits, room_items, inv_items, room_weapons, player_weapons, room_enemies)
 
     # Read player's input
     user_input = input("> ")
@@ -390,7 +474,7 @@ def move(exits, direction):
 
 # This is the entry point of our program
 def main():
-    execute_battle("troll")
+    print_introduction_to_game()
     # Main game loop
     while True:
         # Display game status (room description, inventory etc.)
@@ -401,7 +485,7 @@ def main():
         print_inventory_items(inventory)
 
         # Show the menu with possible actions and ask the player
-        command = menu(current_room["exits"], current_room["items"], inventory)
+        command = menu(current_room["exits"], current_room["items"], inventory, current_room["weapons"], player_weapons, current_room["enemies"])
 
         # Execute the player's command
         execute_command(command)
