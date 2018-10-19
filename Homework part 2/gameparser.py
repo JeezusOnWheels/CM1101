@@ -27,13 +27,11 @@ def filter_words(words, skip_words):
     ['go', 'passage', 'south']
 
     """
-    for i in range(len(words)):
-        try:
-            skip_words[words[i]]
-            pop(words[i])
-        except:
-            print("")
-    return words
+    expected_output = []
+    for word in words:
+        if word not in skip_words:
+            expected_output.append(word)
+    return expected_output
 
     
 def remove_punct(text):
