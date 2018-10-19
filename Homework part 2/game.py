@@ -244,7 +244,10 @@ def execute_go(direction):
     """
     #print (current_room)
     global current_room
-    current_room = move(current_room["exits"], direction)
+    try:
+        current_room = move(current_room["exits"], direction)
+    except:
+        print("you cannot move there")
 
 
 def execute_take(item_id):
@@ -257,20 +260,26 @@ def execute_take(item_id):
     #try:
     i = 0
     total_sum_of_items = 0
-    actual_item = items_all[item_id]
-    for element in current_room["items"]:
-        if actual_item == element:
-            for myinvitem in inventory:
-                total_sum_of_items = total_sum_of_items + myinvitem["mass"]
-            if (total_sum_of_items + element["mass"] > 3.0):
-                print ("You cannot take that")
-                print ("It is too heavy :/")
+    try:
+        actual_item = items_all[item_id]
+    except:
+        print("Invalid item name")
+    try:
+        for element in current_room["items"]:
+            if actual_item == element:
+                for myinvitem in inventory:
+                    total_sum_of_items = total_sum_of_items + myinvitem["mass"]
+                if (total_sum_of_items + element["mass"] > 3.0):
+                    print ("You cannot take that")
+                    print ("It is too heavy :/")
+                    return
+                current_room["items"].pop(i)
+                inventory.append(element)
+                print("you picked up "+ element["name"])
                 return
-            current_room["items"].pop(i)
-            inventory.append(element)
-            print("you picked up "+ element["name"])
-            return
-        i = i + 1
+            i = i + 1
+    except:
+        print("")
     print ("You cannot take that")
     return
 
@@ -280,14 +289,17 @@ def execute_drop(item_id):
     no such item in the inventory, this function prints "You cannot drop that."
     """
     i = 0
-    actual_item = items_all[item_id]
-    for element in inventory:
-    	#print (element)
-    	#print (item_id)
-        if actual_item == element:
-            current_room["items"].append(element)
-            inventory.pop(i)
-        i = i + 1
+    try:
+        actual_item = items_all[item_id]
+        for element in inventory:
+            #print (element)
+            #print (item_id)
+            if actual_item == element:
+                current_room["items"].append(element)
+                inventory.pop(i)
+            i = i + 1
+    except:
+        print("You cannot drop that")
     
 
 def execute_command(command):
